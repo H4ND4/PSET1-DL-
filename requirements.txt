@@ -1,0 +1,4 @@
+fastai
+fastcore
+duckduckgo_search
+streamlit
