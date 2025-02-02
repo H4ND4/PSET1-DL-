@@ -35,72 +35,74 @@ if not path.exists():
 
 # Verify and clean up images
 fns = get_image_files(path)
-failed = verify_images(fns)
-if len(failed) > 0:
-    st.write(f"Failed images: {len(failed)}")
-    failed.map(Path.unlink)
 
-# Remove images that do not match the category manually
-for food in food_types:
-    food_path = path/food
-    for img in get_image_files(food_path):
-        try:
-            with Image.open(img) as im:
-                im.verify()
-        except:
-            img.unlink()
+if __name__ == '__main__':  # This ensures the multiprocessing starts only when the script is executed as the main program
+    failed = verify_images(fns)
+    if len(failed) > 0:
+        st.write(f"Failed images: {len(failed)}")
+        failed.map(Path.unlink)
 
-# Define DataBlock and DataLoaders
-foods = DataBlock(
-    blocks=(ImageBlock, CategoryBlock),
-    get_items=get_image_files,
-    splitter=RandomSplitter(valid_pct=0.2, seed=42),
-    get_y=parent_label,
-    item_tfms=RandomResizedCrop(224, min_scale=0.5),
-    batch_tfms=aug_transforms()
-)
+    # Remove images that do not match the category manually
+    for food in food_types:
+        food_path = path/food
+        for img in get_image_files(food_path):
+            try:
+                with Image.open(img) as im:
+                    im.verify()
+            except:
+                img.unlink()
 
-dls = foods.dataloaders(path)
+    # Define DataBlock and DataLoaders
+    foods = DataBlock(
+        blocks=(ImageBlock, CategoryBlock),
+        get_items=get_image_files,
+        splitter=RandomSplitter(valid_pct=0.2, seed=42),
+        get_y=parent_label,
+        item_tfms=RandomResizedCrop(224, min_scale=0.5),
+        batch_tfms=aug_transforms()
+    )
 
-# Display a batch of images
-st.write("Here are some sample images:")
-dls.show_batch(max_n=8, nrows=2)
+    dls = foods.dataloaders(path)
 
-# Train the model
-st.write("Training the model...")
-learn = cnn_learner(dls, resnet18, metrics=error_rate)
-learn.fine_tune(6)
+    # Display a batch of images
+    st.write("Here are some sample images:")
+    dls.show_batch(max_n=8, nrows=2)
 
-# Show confusion matrix and top losses
-interp = ClassificationInterpretation.from_learner(learn)
-st.write("Confusion Matrix:")
-st.pyplot(interp.plot_confusion_matrix())
+    # Train the model
+    st.write("Training the model...")
+    learn = cnn_learner(dls, resnet18, metrics=error_rate)
+    learn.fine_tune(6)
 
-st.write("Top losses:")
-st.pyplot(interp.plot_top_losses(5, nrows=1))
+    # Show confusion matrix and top losses
+    interp = ClassificationInterpretation.from_learner(learn)
+    st.write("Confusion Matrix:")
+    st.pyplot(interp.plot_confusion_matrix())
 
-# Allow user to clean up misclassified images
-cleaner = ImageClassifierCleaner(learn)
-st.write("Cleaning up misclassified images...")
-if st.button('Clean Images'):
-    for idx in cleaner.delete():
-        cleaner.fns[idx].unlink()
-    for idx, cat in cleaner.change():
-        shutil.move(str(cleaner.fns[idx]), path/cat)
+    st.write("Top losses:")
+    st.pyplot(interp.plot_top_losses(5, nrows=1))
 
-# Re-load the data after cleaning
-dls = foods.dataloaders(path, bs=32)
-learn = cnn_learner(dls, resnet18, metrics=error_rate)
-learn.fine_tune(4)
+    # Allow user to clean up misclassified images
+    cleaner = ImageClassifierCleaner(learn)
+    st.write("Cleaning up misclassified images...")
+    if st.button('Clean Images'):
+        for idx in cleaner.delete():
+            cleaner.fns[idx].unlink()
+        for idx, cat in cleaner.change():
+            shutil.move(str(cleaner.fns[idx]), path/cat)
 
-# Final results
-interp = ClassificationInterpretation.from_learner(learn)
-st.write("Final Confusion Matrix:")
-st.pyplot(interp.plot_confusion_matrix())
-st.write("Final Top losses:")
-st.pyplot(interp.plot_top_losses(15, nrows=3))
+    # Re-load the data after cleaning
+    dls = foods.dataloaders(path, bs=32)
+    learn = cnn_learner(dls, resnet18, metrics=error_rate)
+    learn.fine_tune(4)
 
-# Save the final trained model
-learn.export('mongolian_foods_classifier.pkl')
+    # Final results
+    interp = ClassificationInterpretation.from_learner(learn)
+    st.write("Final Confusion Matrix:")
+    st.pyplot(interp.plot_confusion_matrix())
+    st.write("Final Top losses:")
+    st.pyplot(interp.plot_top_losses(15, nrows=3))
 
-st.write("Model saved as 'mongolian_foods_classifier.pkl'")
+    # Save the final trained model
+    learn.export('mongolian_foods_classifier.pkl')
+
+    st.write("Model saved as 'mongolian_foods_classifier.pkl'")
