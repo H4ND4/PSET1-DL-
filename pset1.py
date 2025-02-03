@@ -1,7 +1,10 @@
 import streamlit as st
 from fastai.vision.all import *
+from fastai.vision.widgets import *
+
 import os
 import pathlib
+from pathlib import Path
 
 # Temporarily patch PosixPath for Windows compatibility
 temp = pathlib.PosixPath
