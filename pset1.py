@@ -12,7 +12,7 @@ pathlib.PosixPath = pathlib.WindowsPath
 # Load the trained model
 def load_model():
     try:
-        model_path = os.path.abspath('mongolian_foods_classifier.pkl')
+        model_path = os.path.abspath('mongolian_foods_classifier_unix.pkl')
         model = load_learner(model_path)
         return model
     except Exception as e:
