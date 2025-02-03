@@ -4,10 +4,15 @@ from fastai.vision.all import *
 import os
 import pathlib
 from pathlib import Path
+import sys
 
-# Temporarily patch PosixPath for Windows compatibility
-temp = pathlib.PosixPath
-pathlib.PosixPath = pathlib.WindowsPath
+# Dynamically patch pathlib for cross-platform compatibility
+if sys.platform == "win32":
+    temp = pathlib.PosixPath
+    pathlib.PosixPath = pathlib.WindowsPath
+else:
+    temp = pathlib.WindowsPath
+    pathlib.WindowsPath = pathlib.PosixPath
 
 # Load the trained model
 def load_model():
@@ -19,8 +24,11 @@ def load_model():
         st.error(f"Error loading model: {e}")
         return None
     finally:
-        # Restore the original PosixPath
-        pathlib.PosixPath = temp
+        # Restore the original pathlib settings
+        if sys.platform == "win32":
+            pathlib.PosixPath = temp
+        else:
+            pathlib.WindowsPath = temp
 
 # Streamlit app
 def main():
